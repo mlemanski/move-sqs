@@ -13,6 +13,7 @@ const REQUIRED_ARGS = [
   'destRegion',
   'accessKeyId',
   'secretAccessKey',
+  'sessionToken',
 ];
 
 const validate = (input) => {
@@ -26,13 +27,14 @@ const validate = (input) => {
   }
 };
 
-const createSQS = ({ region, accessKeyId, secretAccessKey }) =>
-  new AWS.SQS({
-    apiVersion: '2012-11-05',
-    region,
-    accessKeyId,
-    secretAccessKey,
-  });
+const createSqs = ({ region, accessKeyId, secretAccessKey, sessionToken }) =>
+    new AWS.SQS({
+      apiVersion: '2012-11-05',
+      region: region,
+      accessKeyId,
+      secretAccessKey,
+      sessionToken: sessionToken,
+    });
 
 const receiveMessagesBatch = async ({ sqs, queueUrl }) => {
   const data = await sqs
@@ -90,9 +92,9 @@ const createMoveJob = async ({
       })
     : message.Body;
 
-  await sendMessage({ destSqs, queueUrl: destinationQueueUrl, messageBody });
+  await sendMessage({ sqs: destSqs, queueUrl: destinationQueueUrl, messageBody });
   await deleteMessage({
-    sourceSqs,
+    sqs: sourceSqs,
     queueUrl: sourceQueueUrl,
     receiptHandle: message.ReceiptHandle,
   });
@@ -108,12 +110,13 @@ module.exports = async (input) => {
     destRegion,
     accessKeyId,
     secretAccessKey,
+    sessionToken,
     mergeJsonMessageWith,
   } = input;
 
-  const sourceSqs = createSQS({ sourceRegion, accessKeyId, secretAccessKey });
-  const destSqs = createSQS({ destRegion, accessKeyId, secretAccessKey });
-  const messages = await receiveAllMessages({ sourceSqs, queueUrl: sourceQueueUrl });
+  const sourceSqs = createSqs({ region: sourceRegion, accessKeyId, secretAccessKey, sessionToken });
+  const destSqs = createSqs({region: destRegion, accessKeyId, secretAccessKey, sessionToken});
+  const messages = await receiveAllMessages({ sqs: sourceSqs, queueUrl: sourceQueueUrl });
   const limit = pLimit(MOVE_CONCURRENCY);
   const moveJobs = messages.map((message) =>
     limit(() =>

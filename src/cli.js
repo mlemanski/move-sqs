@@ -11,8 +11,8 @@ const cli = meow(
 	Options
 	  --source-queue-url, -s  Source AWS SQS Queue URL
 	  --destination-queue-url, -d  Destination AWS SQS Queue URL
-	  --source_region, -sr  AWS Region
-	  --dest_region, -dr  AWS Region
+	  --source-region, -sr  Source AWS Region
+	  --dest-region, -dr  Dest AWS Region
 	  --access-key-id, -k  AWS Access Key ID
 	  --secret-access-key, -S AWS Secret Access Key
 	  --merge-json-message-with, -o (OPTIONAL) Merge the json message body with a given json string 
@@ -29,11 +29,11 @@ const cli = meow(
       },
       'source-region': {
         type: 'string',
-        alias: 'sr',
+        alias: 'r',
       },
       'dest-region': {
         type: 'string',
-        alias: 'dr',
+        alias: 't',
       },
       'access-key-id': {
         type: 'string',
@@ -42,6 +42,10 @@ const cli = meow(
       'secret-access-key': {
         type: 'string',
         alias: 'S',
+      },
+      'session-token': {
+        type: 'string',
+        alias: 'T',
       },
       'merge-json-message-with': {
         type: 'string',
