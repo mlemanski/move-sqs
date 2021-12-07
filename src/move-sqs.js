@@ -9,7 +9,8 @@ const RECEIVE_PARAMS = { MaxNumberOfMessages: 10, VisibilityTimeout: 10 };
 const REQUIRED_ARGS = [
   'sourceQueueUrl',
   'destinationQueueUrl',
-  'region',
+  'sourceRegion',
+  'destRegion',
   'accessKeyId',
   'secretAccessKey',
 ];
@@ -76,7 +77,8 @@ const deleteMessage = async ({ sqs, queueUrl, receiptHandle }) =>
 
 const createMoveJob = async ({
   message,
-  sqs,
+  sourceSqs,
+  destSqs,
   mergeJsonMessageWith,
   sourceQueueUrl,
   destinationQueueUrl,
@@ -88,9 +90,9 @@ const createMoveJob = async ({
       })
     : message.Body;
 
-  await sendMessage({ sqs, queueUrl: destinationQueueUrl, messageBody });
+  await sendMessage({ destSqs, queueUrl: destinationQueueUrl, messageBody });
   await deleteMessage({
-    sqs,
+    sourceSqs,
     queueUrl: sourceQueueUrl,
     receiptHandle: message.ReceiptHandle,
   });
@@ -102,20 +104,23 @@ module.exports = async (input) => {
   const {
     sourceQueueUrl,
     destinationQueueUrl,
-    region,
+    sourceRegion,
+    destRegion,
     accessKeyId,
     secretAccessKey,
     mergeJsonMessageWith,
   } = input;
 
-  const sqs = createSQS({ region, accessKeyId, secretAccessKey });
-  const messages = await receiveAllMessages({ sqs, queueUrl: sourceQueueUrl });
+  const sourceSqs = createSQS({ sourceRegion, accessKeyId, secretAccessKey });
+  const destSqs = createSQS({ destRegion, accessKeyId, secretAccessKey });
+  const messages = await receiveAllMessages({ sourceSqs, queueUrl: sourceQueueUrl });
   const limit = pLimit(MOVE_CONCURRENCY);
   const moveJobs = messages.map((message) =>
     limit(() =>
       createMoveJob({
         message,
-        sqs,
+        sourceSqs,
+        destSqs,
         mergeJsonMessageWith,
         sourceQueueUrl,
         destinationQueueUrl,
